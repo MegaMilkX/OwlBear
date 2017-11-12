@@ -5,7 +5,9 @@
 #include "core_interface.h"
 
 typedef GameState* (*PFN_START) (CoreInterface*);
+typedef void(*PFN_CLEANUP) ();
 PFN_START FuncStart = 0;
+PFN_CLEANUP FuncCleanup = 0;
 
 CoreInterface* coreInterface = 0;
 
@@ -24,13 +26,15 @@ int main()
     GameState* state = 0;
 
     FuncStart = (PFN_START)GetProcAddress(game_module, "OwlBearStart");
-    if (FuncStart)
-        state = FuncStart(coreInterface);
-    else
+    FuncCleanup = (PFN_CLEANUP)GetProcAddress(game_module, "OwlBearCleanup");
+    if (!FuncStart || !FuncCleanup)
     {
-        std::cout << "Failed to find OwlBearStart()" << std::endl;
+        std::cout << "Failed to find required functions" << std::endl;
         std::getchar();
+        return 1;
     }
+
+    state = FuncStart(coreInterface);
 
     if (!state)
     {
@@ -40,5 +44,6 @@ int main()
     coreInterface->Switch(state);
     while(coreInterface->Update());
 
+    FuncCleanup();
     return 0;
 }

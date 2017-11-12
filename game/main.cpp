@@ -8,7 +8,7 @@ public:
     Gameplay(CoreInterface* core)
         : core(core)
     {
-
+        
     }
     ~Gameplay() {}
 
@@ -37,6 +37,11 @@ extern "C"
         std::cout << "Hello, World!" << std::endl;
         gameplay = new Gameplay(core);
         return gameplay;
+    }
+
+    DLLEXPORT void OwlBearCleanup()
+    {
+        delete gameplay;
     }
 
 }
