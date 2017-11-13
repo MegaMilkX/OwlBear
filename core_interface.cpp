@@ -2,6 +2,8 @@
 
 #include "timer.h"
 
+#include "scene_object.h"
+
 static Au::Timer timer;
 
 float CoreInterface::DeltaTime()
@@ -18,10 +20,16 @@ void CoreInterface::Switch(GameState* state)
 bool CoreInterface::Update()
 {
     timer.Start();
+    if (window->Destroyed())
+        return false;
+    Au::Window::PollMessages();
     if (!state)
         return false;
 
     state->Update();
-    dt = timer.End() / 1000000.0f;
+    while (dt < 1.0f / 60.0f)
+    {
+        dt = timer.End() / 1000000.0f;
+    }
     return true;
 }

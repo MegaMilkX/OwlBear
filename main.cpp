@@ -15,7 +15,7 @@ int main()
 {
     coreInterface = new CoreInterface();
 
-    HMODULE game_module = LoadLibrary("game.dll");
+    HMODULE game_module = LoadLibrary(L"game.dll");
     if (game_module == NULL)
     {
         std::cout << "Failed to load dll" << std::endl;

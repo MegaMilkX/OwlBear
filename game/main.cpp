@@ -1,6 +1,6 @@
 #include <iostream>
 #include "../core_interface.h"
-#include "../game_state.h"
+#include "../scene_object.h"
 
 class Gameplay : public GameState
 {
@@ -8,7 +8,7 @@ public:
     Gameplay(CoreInterface* core)
         : core(core)
     {
-        
+        SceneObject* o = scene.CreateObject();
     }
     ~Gameplay() {}
 
@@ -22,6 +22,7 @@ public:
     }
 private:
     CoreInterface* core;
+    SceneObject scene;
 };
 
 Gameplay* gameplay = 0;
