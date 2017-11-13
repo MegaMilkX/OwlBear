@@ -6,9 +6,11 @@ class Gameplay : public GameState
 {
 public:
     Gameplay(CoreInterface* core)
-        : core(core)
+        : core(core), scene(core)
     {
         SceneObject* o = scene.CreateObject();
+
+
     }
     ~Gameplay() {}
 
@@ -17,7 +19,7 @@ public:
     void Switch() {}
     bool Update()
     {
-        std::cout << "dt: " << core->DeltaTime() << std::endl;
+        
         return true;
     }
 private:

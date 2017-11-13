@@ -28,8 +28,8 @@ public:
         SceneObject* object;
     };
     
-    SceneObject() : parentObject(0) {}
-    SceneObject(SceneObject* parent) : parentObject(parent) {}
+    SceneObject(CoreInterface* core) : core(core), parentObject(0) {}
+    SceneObject(CoreInterface* core, SceneObject* parent) : core(core), parentObject(parent) {}
     ~SceneObject()
     {
         for(unsigned i = 0; i < objects.size(); ++i)
@@ -51,7 +51,7 @@ public:
     
     SceneObject* CreateObject()
     {
-        SceneObject* o = new SceneObject(this);
+        SceneObject* o = new SceneObject(core, this);
         objects.push_back(o);
         return o;
     }
