@@ -2,18 +2,19 @@
 #define CORE_INTERFACE_H
 
 #include "game_state.h"
-#include "window.h"
 
+namespace Au {
+    namespace GFX { class Device; }
+}
+namespace Au { class Window; }
 class SceneObject;
 class CoreInterface
 {
 public:
-    CoreInterface()
-        : state(0), dt(.0f)
-    {
-        window = Au::Window::Create("OwlBear", 1280, 720);
-        window->Show();
-    }
+    CoreInterface();
+    ~CoreInterface();
+
+    virtual Au::GFX::Device* GetGfxDevice();
 
     virtual void Switch(GameState* state);
     virtual float DeltaTime();
@@ -21,6 +22,7 @@ public:
     virtual bool Update();
 private:
     Au::Window* window;
+    Au::GFX::Device* gfxDevice;
     GameState* state;
     float dt;
 };
