@@ -4,6 +4,8 @@
 
 #include "core_interface.h"
 
+#include <aurora/lua.h>
+
 typedef GameState* (*PFN_START) (CoreInterface*);
 typedef void(*PFN_CLEANUP) ();
 PFN_START FuncStart = 0;
@@ -15,7 +17,15 @@ int main()
 {
     coreInterface = new CoreInterface();
 
-    HMODULE game_module = LoadLibrary(L"game.dll");
+    std::string moduleName = "";
+    {
+        Au::Lua lua;
+        lua.Init();
+        lua.DoFile("config.lua");
+        moduleName = lua.GetGlobal<std::string>("Module");
+    }
+
+    HMODULE game_module = LoadLibraryA(moduleName.c_str());
     if (game_module == NULL)
     {
         std::cout << "Failed to load dll" << std::endl;
