@@ -6,11 +6,9 @@ class Gameplay : public GameState
 {
 public:
     Gameplay(CoreInterface* core)
-        : core(core), scene(core)
+        : core(core)
     {
-        SceneObject* o = scene.CreateObject();
-
-
+        Camera* cam = core->GetGfx()->CreateCamera();
     }
     ~Gameplay() {}
 
@@ -24,7 +22,6 @@ public:
     }
 private:
     CoreInterface* core;
-    SceneObject scene;
 };
 
 Gameplay* gameplay = 0;
