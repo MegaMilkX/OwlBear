@@ -13,21 +13,21 @@ CoreInterface::CoreInterface()
     window = Au::Window::Create("OwlBear", 640, 480);
     window->Show();
 
-    gfxDevice = new Au::GFX::Device();
-    gfxDevice->Init(*window);
+    gfx = new Gfx();
+    gfx->Init(*window);
 }
 
 CoreInterface::~CoreInterface()
 {
-    gfxDevice->Cleanup();
-    delete gfxDevice;
+    gfx->Cleanup();
+    delete gfx;
 
     Au::Window::Destroy(window);
 }
 
-Au::GFX::Device* CoreInterface::GetGfxDevice()
+Gfx* CoreInterface::GetGfx()
 {
-    return gfxDevice;
+    return gfx;
 }
 
 float CoreInterface::DeltaTime()
@@ -51,8 +51,9 @@ bool CoreInterface::Update()
         return false;
 
     state->Update();
-    gfxDevice->Clear();
-    gfxDevice->SwapBuffers();
+    
+    gfx->Render();
+
     while (dt < 1.0f / 60.0f)
     {
         dt = timer.End() / 1000000.0f;

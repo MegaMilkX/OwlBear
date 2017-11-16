@@ -3,10 +3,12 @@
 
 #include "game_state.h"
 
+#include "gfx.h"
+
 namespace Au {
     namespace GFX { class Device; }
 }
-namespace Au { class Window; }
+
 class SceneObject;
 class CoreInterface
 {
@@ -14,7 +16,7 @@ public:
     CoreInterface();
     ~CoreInterface();
 
-    virtual Au::GFX::Device* GetGfxDevice();
+    virtual Gfx* GetGfx();
 
     virtual void Switch(GameState* state);
     virtual float DeltaTime();
@@ -23,6 +25,8 @@ public:
 private:
     Au::Window* window;
     Au::GFX::Device* gfxDevice;
+    
+    Gfx* gfx;
     GameState* state;
     float dt;
 };
