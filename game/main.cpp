@@ -1,14 +1,16 @@
 #include <iostream>
-#include "../core_interface.h"
-#include "../scene_object.h"
+#include "components.h"
 
 class Gameplay : public GameState
 {
 public:
-    Gameplay(CoreInterface* core)
-        : core(core)
+    Gameplay(ICore* core)
+        : core(core), scene(core)
     {
-        Camera* cam = core->GetGfx()->CreateCamera();
+        SceneObject* o = scene.CreateObject();
+
+        o->GetComponent<Camera>();
+        o->GetComponent<Mesh>();
     }
     ~Gameplay() {}
 
@@ -21,7 +23,8 @@ public:
         return true;
     }
 private:
-    CoreInterface* core;
+    ICore* core;
+    SceneObject scene;
 };
 
 Gameplay* gameplay = 0;
@@ -32,9 +35,8 @@ Gameplay* gameplay = 0;
 extern "C" 
 {
 
-    DLLEXPORT GameState* OwlBearStart(CoreInterface* core)
+    DLLEXPORT GameState* OwlBearStart(ICore* core)
     {
-        std::cout << "Hello, World!" << std::endl;
         gameplay = new Gameplay(core);
         return gameplay;
     }

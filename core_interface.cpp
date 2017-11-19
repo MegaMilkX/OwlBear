@@ -7,7 +7,7 @@
 
 static Au::Timer timer;
 
-CoreInterface::CoreInterface()
+Core::Core()
 : state(0), dt(.0f)
 {
     window = Au::Window::Create("OwlBear", 640, 480);
@@ -17,7 +17,7 @@ CoreInterface::CoreInterface()
     gfx->Init(*window);
 }
 
-CoreInterface::~CoreInterface()
+Core::~Core()
 {
     gfx->Cleanup();
     delete gfx;
@@ -25,23 +25,23 @@ CoreInterface::~CoreInterface()
     Au::Window::Destroy(window);
 }
 
-Gfx* CoreInterface::GetGfx()
+IGfx* Core::GetGfx()
 {
     return gfx;
 }
 
-float CoreInterface::DeltaTime()
+float Core::DeltaTime()
 {
     return dt;
 }
 
-void CoreInterface::Switch(GameState* state)
+void Core::Switch(GameState* state)
 {
     this->state = state;
     state->Switch();
 }
 
-bool CoreInterface::Update()
+bool Core::Update()
 {
     timer.Start();
     if (window->Destroyed())

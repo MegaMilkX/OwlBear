@@ -15,12 +15,6 @@ private:
 };
 
 template<typename T>
-typeindex type_index()
-{
-    return TypeInfo<T>::Index();
-}
-
-template<typename T>
 typeindex GetTypeIndex(T value)
 {
     return TypeInfo<T>::Index();

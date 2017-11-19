@@ -6,16 +6,16 @@
 
 #include <aurora/lua.h>
 
-typedef GameState* (*PFN_START) (CoreInterface*);
+typedef GameState* (*PFN_START) (Core*);
 typedef void(*PFN_CLEANUP) ();
 PFN_START FuncStart = 0;
 PFN_CLEANUP FuncCleanup = 0;
 
-CoreInterface* coreInterface = 0;
+Core* core = 0;
 
 int main()
 {
-    coreInterface = new CoreInterface();
+    core = new Core();
 
     std::string moduleName = "";
     {
@@ -44,15 +44,15 @@ int main()
         return 1;
     }
 
-    state = FuncStart(coreInterface);
+    state = FuncStart(core);
 
     if (!state)
     {
         return 1;
     }
 
-    coreInterface->Switch(state);
-    while(coreInterface->Update());
+    core->Switch(state);
+    while(core->Update());
 
     FuncCleanup();
     return 0;

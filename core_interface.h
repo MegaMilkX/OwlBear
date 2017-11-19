@@ -10,18 +10,18 @@ namespace Au {
 }
 
 class SceneObject;
-class CoreInterface
+class Core
 {
 public:
-    CoreInterface();
-    ~CoreInterface();
+    Core();
+    ~Core();
 
-    virtual Gfx* GetGfx();
+    virtual IGfx* GetGfx();
 
     virtual void Switch(GameState* state);
     virtual float DeltaTime();
 
-    virtual bool Update();
+    bool Update();
 private:
     Au::Window* window;
     Au::GFX::Device* gfxDevice;
