@@ -1,16 +1,17 @@
 #include <iostream>
-#include "components.h"
+#include "../icore.h"
+#include "../scene_object.h"
+#include "../render_system/render_system.h"
 
 class Gameplay : public GameState
 {
 public:
     Gameplay(ICore* core)
-        : core(core), scene(core)
+        : core(core)
     {
-        SceneObject* o = scene.CreateObject();
-
-        o->GetComponent<Camera>();
-        o->GetComponent<Mesh>();
+        scene = core->CreateScene();
+        Camera* cam = scene->GetComponent<Camera>();
+        Mesh* mesh = scene->GetComponent<Mesh>();
     }
     ~Gameplay() {}
 
@@ -24,7 +25,7 @@ public:
     }
 private:
     ICore* core;
-    SceneObject scene;
+    SceneObject* scene;
 };
 
 Gameplay* gameplay = 0;
