@@ -1,6 +1,6 @@
 #include "scene_object_impl.h"
 
-#include "module_library.h"
+#include "game_system_library.h"
 
 void SceneObjectImpl::SetName(const char* name)
 {

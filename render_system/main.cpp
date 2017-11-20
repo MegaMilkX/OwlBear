@@ -1,12 +1,13 @@
 #include <string>
 
+#include "../icore.h"
 #include "render_system.h"
 
 #define DLLEXPORT __declspec(dllexport)
 
 extern "C" 
 {
-    DLLEXPORT void SystemStart()
+    DLLEXPORT void SystemStart(ICore* core)
     {
         std::cout << "RenderSystem start" << std::endl;
     }

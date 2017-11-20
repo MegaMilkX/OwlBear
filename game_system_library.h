@@ -1,6 +1,8 @@
 #ifndef MODULE_LIBRARY_H
 #define MODULE_LIBRARY_H
 
+#include "icore.h"
+
 #include "scene_object.h"
 
 #include <windows.h>
@@ -33,14 +35,19 @@ inline std::vector<std::string> find_files(const std::string& filename)
     return result;
 }
 
-typedef void (*PFN_SYSTEMSTART) (void);
+typedef void (*PFN_SYSTEMSTART) (ICore*);
 typedef Component*(*PFN_SYSTEMGETCOMPONENT) (SceneObject*, const char*);
 typedef void(*PFN_SYSTEMCLEANUP) (void);
 
 class ComponentModule
 {
 public:
-    bool Init(const std::string& name)
+    ComponentModule()
+        : FuncStart(0), FuncGetComponent(0), FuncCleanup(0)
+    {
+
+    }
+    bool Init(const std::string& name, ICore* core)
     {
         module = LoadLibraryA(name.c_str());
         if (module == NULL)
@@ -52,19 +59,21 @@ public:
         FuncStart = (PFN_SYSTEMSTART)GetProcAddress(module, "SystemStart");
         FuncGetComponent = (PFN_SYSTEMGETCOMPONENT)GetProcAddress(module, "SystemGetComponent");
         FuncCleanup = (PFN_SYSTEMCLEANUP)GetProcAddress(module, "SystemCleanup");
-        if (!FuncStart || !FuncGetComponent || !FuncCleanup)
+        if (!FuncStart || !FuncCleanup)
         {
             std::cout << "Failed to find required functions for " << name << std::endl;
             return false;
         }
 
-        FuncStart();
+        FuncStart(core);
 
         return true;
     }
 
     Component* GetComponent(SceneObject* so, const char* name)
     {
+        if (FuncGetComponent == 0)
+            return 0;
         return FuncGetComponent(so, name);
     }
     
@@ -83,13 +92,13 @@ private:
 class ModuleLibrary
 {
 public:
-    static void Init()
+    static void Init(ICore* core)
     {
         std::vector<std::string> files = find_files("*.dll");
         for (std::string& f : files)
         {
             ComponentModule module;
-            if (!module.Init(f))
+            if (!module.Init(f, core))
                 continue;
             modules.push_back(module);
         }

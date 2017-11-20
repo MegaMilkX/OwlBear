@@ -9,7 +9,7 @@
 
 #include "scene_object_impl.h"
 
-#include "module_library.h"
+#include "game_system_library.h"
 
 namespace Au {
     namespace GFX { class Device; }

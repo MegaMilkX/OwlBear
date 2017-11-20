@@ -8,7 +8,7 @@ static Au::Timer timer;
 Core::Core()
 : state(0), dt(.0f)
 {
-    ModuleLibrary::Init();
+    ModuleLibrary::Init(this);
 
     window = Au::Window::Create("OwlBear", 640, 480);
     window->Show();
