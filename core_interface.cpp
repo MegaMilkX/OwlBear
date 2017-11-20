@@ -3,13 +3,13 @@
 #include <aurora/timer.h>
 #include <aurora/gfx.h>
 
-#include "scene_object.h"
-
 static Au::Timer timer;
 
 Core::Core()
 : state(0), dt(.0f)
 {
+    ModuleLibrary::Init();
+
     window = Au::Window::Create("OwlBear", 640, 480);
     window->Show();
 
@@ -23,11 +23,14 @@ Core::~Core()
     delete gfx;
 
     Au::Window::Destroy(window);
+
+    ModuleLibrary::Cleanup();
 }
 
-IGfx* Core::GetGfx()
+void Core::Switch(GameState* state)
 {
-    return gfx;
+    this->state = state;
+    state->Switch();
 }
 
 float Core::DeltaTime()
@@ -35,10 +38,16 @@ float Core::DeltaTime()
     return dt;
 }
 
-void Core::Switch(GameState* state)
+SceneObject* Core::CreateScene()
 {
-    this->state = state;
-    state->Switch();
+    SceneObject* s = new SceneObjectImpl(this);
+    scenes.insert(s);
+    return s;
+}
+
+void Core::DestroyScene(SceneObject* so)
+{
+    scenes.erase(so);
 }
 
 bool Core::Update()
