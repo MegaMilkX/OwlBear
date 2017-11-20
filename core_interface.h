@@ -32,10 +32,6 @@ public:
 private:
     std::set<SceneObject*> scenes;
 
-    Au::Window* window;
-    Au::GFX::Device* gfxDevice;
-    
-    Gfx* gfx;
     GameState* state;
     float dt;
 };

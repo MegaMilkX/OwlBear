@@ -124,15 +124,6 @@ private:
 
     std::set<Mesh*> meshes;
     std::set<Camera*> cameras;
-
-    HDC deviceContext;
-    HGLRC context;
-    HGLRC threadingContext;
-    int contextVersion = 0;
-
-    // Temp
-    Au::GFX::RenderState* renderState;
-    Au::GFX::Mesh* mesh;
 };
 
 #endif

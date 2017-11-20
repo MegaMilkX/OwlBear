@@ -2,7 +2,7 @@
 #define MODULE_LIBRARY_H
 
 #include "icore.h"
-
+#include "game_system.h"
 #include "scene_object.h"
 
 #include <windows.h>
@@ -35,7 +35,7 @@ inline std::vector<std::string> find_files(const std::string& filename)
     return result;
 }
 
-typedef void (*PFN_SYSTEMSTART) (ICore*);
+typedef GameSystem*(*PFN_SYSTEMSTART) (ICore*);
 typedef Component*(*PFN_SYSTEMGETCOMPONENT) (SceneObject*, const char*);
 typedef void(*PFN_SYSTEMCLEANUP) (void);
 
@@ -43,38 +43,37 @@ class ComponentModule
 {
 public:
     ComponentModule()
-        : FuncStart(0), FuncGetComponent(0), FuncCleanup(0)
+        : FuncStart(0), FuncCleanup(0)
     {
 
     }
-    bool Init(const std::string& name, ICore* core)
+    GameSystem* Init(const std::string& name, ICore* core)
     {
+        GameSystem* sys = 0;
         module = LoadLibraryA(name.c_str());
         if (module == NULL)
         {
             std::cout << "Failed to load system module " << name << std::endl;
-            return false;
+            return 0;
         }
 
         FuncStart = (PFN_SYSTEMSTART)GetProcAddress(module, "SystemStart");
-        FuncGetComponent = (PFN_SYSTEMGETCOMPONENT)GetProcAddress(module, "SystemGetComponent");
         FuncCleanup = (PFN_SYSTEMCLEANUP)GetProcAddress(module, "SystemCleanup");
         if (!FuncStart || !FuncCleanup)
         {
             std::cout << "Failed to find required functions for " << name << std::endl;
-            return false;
+            return 0;
         }
 
-        FuncStart(core);
-
-        return true;
-    }
-
-    Component* GetComponent(SceneObject* so, const char* name)
-    {
-        if (FuncGetComponent == 0)
-            return 0;
-        return FuncGetComponent(so, name);
+        sys = FuncStart(core);
+        if (sys)
+            if (!sys->Init())
+            {
+                sys->Cleanup();
+                Cleanup();
+                return 0;
+            }
+        return sys;
     }
     
     void Cleanup()
@@ -85,7 +84,6 @@ public:
 private:
     HMODULE module;
     PFN_SYSTEMSTART FuncStart;
-    PFN_SYSTEMGETCOMPONENT FuncGetComponent;
     PFN_SYSTEMCLEANUP FuncCleanup;
 };
 
@@ -98,25 +96,43 @@ public:
         for (std::string& f : files)
         {
             ComponentModule module;
-            if (!module.Init(f, core))
+            GameSystem* sys = module.Init(f, core);
+            if (!sys)
                 continue;
             modules.push_back(module);
+            systems.push_back(sys);
         }
     }
 
-    static Component* GetComponent(SceneObject* so, const char* name)
+    static Component* CreateComponent(SceneObject* so, const char* name)
     {
-        for (auto& m : modules)
+        for (auto& s : systems)
         {
-            Component* c = m.GetComponent(so, name);
+            Component* c = s->CreateComponent(so, name);
             if (c)
                 return c;
         }
+
         return 0;
+    }
+
+    static bool Update(float dt)
+    {
+        for (auto& s : systems)
+        {
+            if (!s->Update())
+                return false;
+        }
+        return true;
     }
 
     static void Cleanup()
     {
+        for (auto& s : systems)
+        {
+            s->Cleanup();
+        }
+
         for (auto& m : modules)
         {
             m.Cleanup();
@@ -124,6 +140,7 @@ public:
     }
 private:
     static std::vector<ComponentModule> modules;
+    static std::vector<GameSystem*> systems;
 };
 
 #endif

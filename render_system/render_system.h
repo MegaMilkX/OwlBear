@@ -10,7 +10,7 @@ class Renderer : public Component
 public:
     Renderer(SceneObject* so)
     {
-        std::cout << "Renderer is ready!" << std::endl;
+        std::cout << "Renderer is ready! !@!" << std::endl;
     }
 private:
     

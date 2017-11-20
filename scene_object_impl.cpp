@@ -40,7 +40,7 @@ Component* SceneObjectImpl::GetComponent(const char* typeName)
         components.find(typeName);
     if (it == components.end())
     {
-        Component* c = ModuleLibrary::GetComponent(this, typeName);
+        Component* c = ModuleLibrary::CreateComponent(this, typeName);
         if (c)
         {
             components.insert(std::make_pair(std::string(typeName), c));
