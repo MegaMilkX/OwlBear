@@ -1,7 +1,5 @@
 #include <iostream>
 #include "../icore.h"
-#include "../scene_object.h"
-#include "../render_system/render_system.h"
 
 class Gameplay : public GameState
 {
@@ -9,9 +7,7 @@ public:
     Gameplay(ICore* core)
         : core(core)
     {
-        scene = core->CreateScene();
-        Camera* cam = scene->GetComponent<Camera>();
-        Mesh* mesh = scene->GetComponent<Mesh>();
+
     }
     ~Gameplay() {}
 
@@ -25,7 +21,6 @@ public:
     }
 private:
     ICore* core;
-    SceneObject* scene;
 };
 
 Gameplay* gameplay = 0;

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <Windows.h>
 
-#include "core_interface.h"
+#include "core.h"
 
 #include <aurora/lua.h>
 
@@ -16,6 +16,8 @@ Core* core = 0;
 int main()
 {
     core = new Core();
+    if (!core->Init())
+        return EXIT_FAILURE;
 
     std::string moduleName = "";
     {

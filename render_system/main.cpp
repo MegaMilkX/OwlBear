@@ -1,20 +1,21 @@
 #include <string>
 
 #include "../icore.h"
-#include "../game_system.h"
-#include "render_system.h"
+#include "../irender_system.h"
 
 #include <aurora/window.h>
 #include <aurora/gfx.h>
 
-class RenderSystem : public GameSystem
+#define STB_IMAGE_IMPLEMENTATION
+extern "C" {
+#include "stb_image.h"
+}
+
+class RenderSystem : public IRenderSystem
 {
 public:
-    bool Init()
+    bool Init(HWND window)
     {
-        window = Au::Window::Create("OwlBear", 640, 480);
-        window->Show();
-
         PIXELFORMATDESCRIPTOR pfd = { 0 };
         pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
         pfd.nVersion = 1;
@@ -24,7 +25,7 @@ public:
         pfd.cDepthBits = 32;
         pfd.iLayerType = PFD_MAIN_PLANE;
 
-        deviceContext = GetDC(*window);
+        deviceContext = GetDC(window);
 
         int pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
 
@@ -115,23 +116,28 @@ public:
         Au::GFX::Shader* vshader = new Au::GFX::Shader(Au::GFX::Shader::VERTEX);
         Au::GFX::Shader* fshader = new Au::GFX::Shader(Au::GFX::Shader::PIXEL);
         vshader->Source(R"(#version 330
-        in vec3 Position;
-        in vec3 ColorRGB;
-        out vec3 fColorRGB;
-        void main()
-        {
-            fColorRGB = ColorRGB;
-            gl_Position = vec4(Position, 1.0);
-        }
-    )");
+            in vec3 Position;
+            in vec3 ColorRGB;
+            in vec2 UV;
+            out vec3 fColorRGB;
+            out vec2 fUV;
+            void main()
+            {
+                fColorRGB = ColorRGB;
+                fUV = UV;
+                gl_Position = vec4(Position, 1.0);
+            }
+        )");
         fshader->Source(R"(#version 330
-        in vec3 fColorRGB;
-        out vec4 color;
-        void main()
-        {
-            color = vec4(fColorRGB.xyz, 1.0);
-        }
-    )");
+            uniform sampler2D Diffuse;
+            in vec3 fColorRGB;
+            in vec2 fUV;
+            out vec4 color;
+            void main()
+            {
+                color = vec4(texture2D(Diffuse, fUV).xyz, 1.0);
+            }
+        )");
         std::cout << vshader->StatusString() << std::endl;
         std::cout << fshader->StatusString() << std::endl;
 
@@ -141,7 +147,7 @@ public:
         renderState->AttribFormat(Au::Position() << Au::ColorRGB());
 
         mesh = new Au::GFX::Mesh();
-        mesh->Format(Au::Position() << Au::ColorRGB());
+        mesh->Format(Au::Position() << Au::ColorRGB() << Au::UV());
         std::vector<float> vertexData = {
             -1.0f, -1.0f, 0.0f,
             1.0f, -1.0f, 0.0f,
@@ -154,39 +160,56 @@ public:
             0.0f, 0.5f, 0.5f,
             0.0f, 0.5f, 0.5f
         };
+        std::vector<float> uvData = {
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f
+        };
         std::vector<unsigned short> indexData = {
             0, 1, 2, 0, 2, 3
         };
         mesh->VertexAttribByInfo(Au::Position(), (unsigned char*)vertexData.data(), vertexData.size() * sizeof(float));
         mesh->VertexAttribByInfo(Au::ColorRGB(), (unsigned char*)colorData.data(), colorData.size() * sizeof(float));
+        mesh->VertexAttribByInfo(Au::UV(), (unsigned char*)uvData.data(), uvData.size() * sizeof(float));
         mesh->IndexData(indexData);
+
+
+        texture = new Au::GFX::Texture2D();
+        stbi_set_flip_vertically_on_load(1);
+        int bpp = 0;
+        int width = 0;
+        int height = 0;
+        unsigned char* texData = 0;
+        //stbi_load_from_memory(test_image, sizeof(test_image), 100, 100, &bpp, 3);
+        texData = stbi_load("test.jpg", &width, &height, &bpp, 3);
+        texture->Data(texData, bpp, width, height);
+        
+        renderState->AddSampler2D("Diffuse", 0);
 
         std::cout << "RenderSystem start!" << std::endl;
         return true;
     }
 
-    Component* CreateComponent(SceneObject* so, const char* name)
+    void Cleanup()
     {
-        std::string nm(name);
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(context);
+        std::cout << "RenderSystem cleanup!" << std::endl;
 
-        if (nm == "Renderer")
-            return new Renderer(so);
-        else if (nm == "Camera")
-            return new Camera(so);
-        else if (nm == "Mesh")
-            return new Mesh(so);
-
-        return 0;
+        delete this;
     }
 
-    bool Update()
+    void ResizeCanvas(int width, int height)
     {
-        if (window->Destroyed())
-            return false;
-        Au::Window::PollMessages();
+        glViewport(0, 0, width, height);
+    }
 
+    void Update()
+    {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         renderState->Bind();
+        texture->Bind(0);
         mesh->Bind();
         mesh->Render(mesh->IndexCount(), 0);
 
@@ -197,14 +220,6 @@ public:
         // Get camera's renderSpace
         // For each renderable in renderSpace
         // 
-        return true;
-    }
-
-    void Cleanup()
-    {
-        wglMakeCurrent(NULL, NULL);
-        wglDeleteContext(context);
-        std::cout << "RenderSystem cleanup!" << std::endl;
     }
 
     int APIVersion()
@@ -213,14 +228,13 @@ public:
     }
 
 private:
-    Au::Window* window;
-
     HDC deviceContext;
     HGLRC context;
     HGLRC threadingContext;
     int contextVersion = 0;
 
     // Temp
+    Au::GFX::Texture2D* texture;
     Au::GFX::RenderState* renderState;
     Au::GFX::Mesh* mesh;
 };
@@ -231,13 +245,8 @@ static RenderSystem renderSystem;
 
 extern "C" 
 {
-    DLLEXPORT GameSystem* SystemStart(ICore* core)
+    DLLEXPORT IRenderSystem* RenderSystemInit(ICore* core)
     {
         return &renderSystem;
-    }
-
-    DLLEXPORT void SystemCleanup()
-    {
-
     }
 }

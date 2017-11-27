@@ -1,8 +1,34 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <windows.h>
+
 #include <vector>
 #include <string>
+
+inline std::vector<std::string> find_files(const std::string& filename)
+{
+    std::vector<std::string> result;
+
+    WIN32_FIND_DATAA find_data;
+    HANDLE h;
+    long long time = 0;
+
+    h = FindFirstFileA(filename.c_str(), &find_data);
+    if (h == NULL)
+    {
+        return result;
+    }
+
+    result.push_back(std::string(find_data.cFileName));
+
+    while (FindNextFileA(h, &find_data))
+    {
+        result.push_back(std::string(find_data.cFileName));
+    }
+
+    return result;
+}
 
 inline std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
