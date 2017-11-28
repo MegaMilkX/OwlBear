@@ -3,6 +3,12 @@
 
 #include <Windows.h>
 
+class IMesh
+{
+public:
+
+};
+
 class IRenderSystem
 {
 public:
@@ -12,6 +18,9 @@ public:
     virtual void ResizeCanvas(int width, int height) = 0;
     
     virtual void Update() = 0;
+
+    virtual IMesh* CreateMesh() = 0;
+    virtual void DestroyMesh(IMesh* mesh) = 0;
 };
 
 #endif

@@ -7,7 +7,8 @@ public:
     Gameplay(ICore* core)
         : core(core)
     {
-
+        IRenderSystem* rs = core->GetRenderSystem();
+        IMesh* mesh = rs->CreateMesh();
     }
     ~Gameplay() {}
 
