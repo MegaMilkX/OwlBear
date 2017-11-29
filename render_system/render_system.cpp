@@ -101,29 +101,12 @@ bool RenderSystem::Init(HWND window)
     renderState = new Au::GFX::RenderState();
     Au::GFX::Shader* vshader = new Au::GFX::Shader(Au::GFX::Shader::VERTEX);
     Au::GFX::Shader* fshader = new Au::GFX::Shader(Au::GFX::Shader::PIXEL);
-    vshader->Source(R"(#version 330
-            in vec3 Position;
-            in vec3 ColorRGB;
-            in vec2 UV;
-            out vec3 fColorRGB;
-            out vec2 fUV;
-            void main()
-            {
-                fColorRGB = ColorRGB;
-                fUV = UV;
-                gl_Position = vec4(Position, 1.0);
-            }
-        )");
-    fshader->Source(R"(#version 330
-            uniform sampler2D Diffuse;
-            in vec3 fColorRGB;
-            in vec2 fUV;
-            out vec4 color;
-            void main()
-            {
-                color = vec4(texture2D(Diffuse, fUV).xyz, 1.0);
-            }
-        )");
+    vshader->Source(
+        #include "vs.glsl"
+    );
+    fshader->Source(
+        #include "fs.glsl"
+    );
     std::cout << vshader->StatusString() << std::endl;
     std::cout << fshader->StatusString() << std::endl;
 
@@ -172,8 +155,9 @@ bool RenderSystem::Init(HWND window)
     tex->Upload(texData, width, height, bpp);
     stbi_image_free(texData);
 
-    frameBuffer = new FrameBuffer(800, 600);
-    //frameBuffer->SetTexture(0, tex);
+    frameBuffer = new FrameBuffer(320, 240);
+    diffuseBuffer = new Texture2D();
+    frameBuffer->SetTexture(0, diffuseBuffer);
 
     std::cout << "RenderSystem start!" << std::endl;
 
@@ -196,14 +180,17 @@ void RenderSystem::ResizeCanvas(int width, int height)
 
 void RenderSystem::Update()
 {
+    frameBuffer->Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     for (Mesh* m : meshes)
     {
+        tex->Bind(0);
+        m->Bind();
         m->Render();
     }
     
-    RenderToScreen(tex);
+    RenderToScreen(diffuseBuffer);
 
     // For each camera
     // Get camera's renderTarget
@@ -232,6 +219,9 @@ void RenderSystem::DestroyMesh(IMesh* mesh)
 void RenderSystem::RenderToScreen(Texture2D* texture)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glViewport(0, 0, 1280, 720);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     renderState->Bind();
     texture->Bind(0);
