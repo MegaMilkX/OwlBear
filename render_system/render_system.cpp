@@ -98,52 +98,80 @@ bool RenderSystem::Init(HWND window)
 
     // ============
 
-    renderState = new Au::GFX::RenderState();
-    Au::GFX::Shader* vshader = new Au::GFX::Shader(Au::GFX::Shader::VERTEX);
-    Au::GFX::Shader* fshader = new Au::GFX::Shader(Au::GFX::Shader::PIXEL);
-    vshader->Source(
-        #include "vs.glsl"
+    shaderProgram = new ShaderProgram();
+    shaderProgram->VertexShader(
+#include "vs_screen.glsl"
     );
-    fshader->Source(
-        #include "fs.glsl"
+    shaderProgram->FragmentShader(
+#include "fs.glsl"
     );
-    std::cout << vshader->StatusString() << std::endl;
-    std::cout << fshader->StatusString() << std::endl;
+    shaderProgram->Link();
 
-    renderState->SetShader(vshader);
-    renderState->SetShader(fshader);
-    std::cout << renderState->StatusString() << std::endl;
-    renderState->AttribFormat(Au::Position() << Au::ColorRGB());
+    sp_model = new ShaderProgram();
+    sp_model->VertexShader(
+#include "vs.glsl"
+    );
+    sp_model->FragmentShader(
+#include "fs.glsl"
+    );
+    sp_model->Link();
 
-    mesh = new Au::GFX::Mesh();
-    mesh->Format(Au::Position() << Au::ColorRGB() << Au::UV());
-    std::vector<float> vertexData = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f
+    std::vector<gfxm::vec3> vertexData = {
+        { -1.0f, -1.0f, 0.0f },
+        { 1.0f, -1.0f, 0.0f },
+        { 1.0f, 1.0f, 0.0f },
+        { -1.0f, 1.0f, 0.0f }
     };
-    std::vector<float> colorData = {
-        0.5f, 0.8f, 0.5f,
-        0.5f, 0.8f, 0.5f,
-        0.0f, 0.5f, 0.5f,
-        0.0f, 0.5f, 0.5f
-    };
-    std::vector<float> uvData = {
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f
+    std::vector<gfxm::vec2> uvData = {
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 1.0f, 1.0f },
+        { 0.0f, 1.0f }
     };
     std::vector<unsigned short> indexData = {
         0, 1, 2, 0, 2, 3
     };
-    mesh->VertexAttribByInfo(Au::Position(), (unsigned char*)vertexData.data(), vertexData.size() * sizeof(float));
-    mesh->VertexAttribByInfo(Au::ColorRGB(), (unsigned char*)colorData.data(), colorData.size() * sizeof(float));
-    mesh->VertexAttribByInfo(Au::UV(), (unsigned char*)uvData.data(), uvData.size() * sizeof(float));
-    mesh->IndexData(indexData);   
 
-    renderState->AddSampler2D("Diffuse", 0);
+    screenQuad = new Mesh();
+    screenQuad->SetPositionData(vertexData);
+    screenQuad->SetUVData(uvData);
+    screenQuad->SetIndexData(indexData);
+
+    vertexData = {
+        { -0.5f, -0.5f, 0.5f },
+        { 0.5f, -0.5f, 0.5f },
+        { 0.5f, -0.5f, -0.5f },
+        { -0.5f, -0.5f, -0.5f },
+        { -0.5f,  0.5f, 0.5f },
+        { 0.5f,  0.5f, 0.5f },
+        { 0.5f,  0.5f, -0.5f },
+        { -0.5f,  0.5f, -0.5f }
+    };
+
+    uvData = {
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 0.0f, 0.0f },
+        { 0.0f, 0.0f },
+        { 0.0f, 1.0f },
+        { 1.0f, 1.0f },
+        { 0.0f, 0.0f },
+        { 0.0f, 0.0f }
+    };
+
+    indexData = {
+        0, 2, 1, 0, 3, 2,
+        4, 5, 6, 4, 6, 7,
+        0, 5, 4, 0, 1, 5,
+        2, 3, 7, 2, 7, 6,
+        0, 7, 3, 0, 4, 7,
+        1, 6, 5, 1, 2, 6
+    };
+
+    cube = new Mesh();
+    cube->SetPositionData(vertexData);
+    cube->SetUVData(uvData);
+    cube->SetIndexData(indexData);
 
     tex = new Texture2D();
     stbi_set_flip_vertically_on_load(1);
@@ -155,7 +183,7 @@ bool RenderSystem::Init(HWND window)
     tex->Upload(texData, width, height, bpp);
     stbi_image_free(texData);
 
-    frameBuffer = new FrameBuffer(320, 240);
+    frameBuffer = new FrameBuffer(640, 480);
     diffuseBuffer = new Texture2D();
     frameBuffer->SetTexture(0, diffuseBuffer);
 
@@ -180,16 +208,33 @@ void RenderSystem::ResizeCanvas(int width, int height)
 
 void RenderSystem::Update()
 {
+    projection = gfxm::perspective(projection, 1.5f, 16.0f/9.0f, 0.01f, 100.0f);
+    model.rotate(0.0001f, gfxm::vec3(0.0f, 1.0f, 0.0f));
+    view.position(0.0f, 0.7f, 2.0f);
+
     frameBuffer->Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     for (Mesh* m : meshes)
     {
+        sp_model->Bind();
+        //glUniformMatrix4fv(0, 1, GL_FALSE, &projection[0][0]);
+        //glUniformMatrix4fv(1, 1, GL_FALSE, &gfxm::inverse(view.matrix())[0][0]);
+        //glUniformMatrix4fv(2, 1, GL_FALSE, &model.matrix()[0][0]);
         tex->Bind(0);
         m->Bind();
         m->Render();
     }
     
+
+    sp_model->Bind();
+    glUniformMatrix4fv(sp_model->UniformLocation("projection"), 1, GL_FALSE, &projection[0][0]);
+    glUniformMatrix4fv(sp_model->UniformLocation("view"), 1, GL_FALSE, &gfxm::inverse(view.matrix())[0][0]);
+    glUniformMatrix4fv(sp_model->UniformLocation("model"), 1, GL_FALSE, &model.matrix()[0][0]);
+    tex->Bind(0);
+    cube->Bind();
+    cube->Render();
+
     RenderToScreen(diffuseBuffer);
 
     // For each camera
@@ -218,15 +263,15 @@ void RenderSystem::DestroyMesh(IMesh* mesh)
 
 void RenderSystem::RenderToScreen(Texture2D* texture)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     glViewport(0, 0, 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    renderState->Bind();
+    shaderProgram->Bind();
     texture->Bind(0);
-    mesh->Bind();
-    mesh->Render(mesh->IndexCount(), 0);
+    screenQuad->Bind();
+    screenQuad->Render();
 
     SwapBuffers(deviceContext);
 }
