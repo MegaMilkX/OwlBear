@@ -151,12 +151,12 @@ bool RenderSystem::Init(HWND window)
     uvData = {
         { 0.0f, 0.0f },
         { 1.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
+        { 0.0f, 1.0f },
+        { 1.0f, 1.0f },
         { 0.0f, 1.0f },
         { 1.0f, 1.0f },
         { 0.0f, 0.0f },
-        { 0.0f, 0.0f }
+        { 1.0f, 0.0f }
     };
 
     indexData = {
