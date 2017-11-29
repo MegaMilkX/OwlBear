@@ -137,29 +137,40 @@ public:
         glGenVertexArrays(1, &vao);
         Bind();
 
+        // =====
         glGenBuffers(1, &vertexBuffer);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+        
+        glGenBuffers(1, &uvBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+        
         glGenBuffers(1, &indexBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-        // =====
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexSize, 0);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertexSize, (void*)(sizeof(float) * 3));
-        glEnableVertexAttribArray(1);
-
         std::vector<float> vertexData = {
-            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-             0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-             0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
-            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,
-             0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
-             0.5f,  0.5f,  0.5f, 0.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f, 0.0f, 0.0f
+            -0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f, -0.5f,
+             0.5f, -0.5f,  0.5f,
+            -0.5f, -0.5f,  0.5f,
+            -0.5f,  0.5f, -0.5f,
+             0.5f,  0.5f, -0.5f,
+             0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f
+        };
+
+        std::vector<float> uvData = {
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            0.0f, 0.0f,
+            0.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            0.0f, 0.0f
         };
 
         std::vector<unsigned short> indexData = {
@@ -171,7 +182,12 @@ public:
             1, 6, 5, 1, 3, 6
         };
 
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), (void*)vertexData.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+        glBufferData(GL_ARRAY_BUFFER, uvData.size() * sizeof(float), (void*)uvData.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData.size() * sizeof(unsigned short), (void*)indexData.data(), GL_STATIC_DRAW);
 
         indexCount = indexData.size();
@@ -183,6 +199,7 @@ public:
     ~Mesh()
     {
         glDeleteBuffers(1, &indexBuffer);
+        glDeleteBuffers(1, &uvBuffer);
         glDeleteBuffers(1, &vertexBuffer);
 
         glDeleteVertexArrays(1, &vao);
@@ -200,6 +217,7 @@ public:
 private:
     GLuint vao;
     GLuint vertexBuffer;
+    GLuint uvBuffer;
     GLuint indexBuffer;
 
     int indexCount;
