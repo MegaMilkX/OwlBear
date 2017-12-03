@@ -6,8 +6,10 @@
 
 #include <aurora/lua.h>
 
+typedef int (*PFN_INIT) (Core*);
 typedef GameState* (*PFN_START) (Core*);
 typedef void(*PFN_CLEANUP) ();
+PFN_INIT FuncInit = 0;
 PFN_START FuncStart = 0;
 PFN_CLEANUP FuncCleanup = 0;
 
@@ -16,8 +18,6 @@ Core* core = 0;
 int main()
 {
     core = new Core();
-    if (!core->Init())
-        return EXIT_FAILURE;
 
     std::string moduleName = "";
     {
@@ -37,22 +37,32 @@ int main()
 
     GameState* state = 0;
 
-    FuncStart = (PFN_START)GetProcAddress(game_module, "OwlBearStart");
-    FuncCleanup = (PFN_CLEANUP)GetProcAddress(game_module, "OwlBearCleanup");
+    FuncInit = (PFN_INIT)GetProcAddress(game_module, "GameInit");
+    FuncStart = (PFN_START)GetProcAddress(game_module, "GameStart");
+    FuncCleanup = (PFN_CLEANUP)GetProcAddress(game_module, "GameCleanup");
     if (!FuncStart || !FuncCleanup)
     {
-        std::cout << "Failed to find required functions" << std::endl;
+        std::cout << "Failed to find required functions for gameplay module" << std::endl;
         std::getchar();
         return 1;
     }
 
+    if (FuncInit)
+    {
+        int res = 0;
+        if (res = FuncInit(core) != 0)
+        {
+            std::cout << "Game module init returned " << res << std::endl;
+            return 1;
+        }
+    }
+    if (!core->Init())
+        return EXIT_FAILURE;
     state = FuncStart(core);
-
     if (!state)
     {
         return 1;
     }
-
     core->Switch(state);
     while(core->Update());
 

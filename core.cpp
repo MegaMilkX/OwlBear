@@ -21,12 +21,17 @@ bool Core::Init()
     window = Au::Window::Create("AuroraX", 1280, 720);
     window->Show();
 
-    IRenderSystem* renderInterface = renderSys.Init(this, "RenderSystemInit");
-    if (!renderInterface)
-        return false;
-    renderInterface->Init(*window);
+    if (renderSys.GetInterface() == 0)
+    {
+        IRenderSystem* renderInterface = renderSys.Init(this, "RenderSystemInit");
+        if (!renderInterface)
+        {
+            std::cout << "No render module found" << std::endl;
+            return false;
+        }
+    }
 
-    IAudioSystem* audioInterface = audioSys.Init(this, "AudioSystemInit");
+    renderSys.GetInterface()->Init(*window);
 
     return true;
 }
@@ -36,10 +41,6 @@ void Core::Cleanup()
     if (renderSys.GetInterface())
         renderSys.GetInterface()->Cleanup();
     renderSys.Cleanup();
-    
-    if (audioSys.GetInterface())
-        audioSys.GetInterface()->Cleanup();
-    audioSys.Cleanup();
 
     Au::Window::Destroy(window);
 }
@@ -55,14 +56,19 @@ float Core::DeltaTime()
     return dt;
 }
 
+IRenderSystem* Core::LoadRenderSystem(const char* filename)
+{
+    if (renderSys.GetInterface() != 0)
+        return 0;
+    IRenderSystem* renderInterface = renderSys.Init(this, filename, "RenderSystemInit");
+    if (!renderInterface)
+        return 0;
+    return renderInterface;
+}
+
 IRenderSystem* Core::GetRenderSystem()
 {
     return renderSys.GetInterface();
-}
-
-IAudioSystem* Core::GetAudioSystem()
-{
-    return audioSys.GetInterface();
 }
 
 bool Core::Update()
@@ -77,8 +83,6 @@ bool Core::Update()
         return false;
     state->Update();
     
-    if(audioSys.GetInterface())
-        audioSys.GetInterface()->Update();
     renderSys.GetInterface()->Update();
 
     while (dt < 1.0f / 60.0f)

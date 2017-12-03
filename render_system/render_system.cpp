@@ -183,9 +183,9 @@ bool RenderSystem::Init(HWND window)
     tex->Upload(texData, width, height, bpp);
     stbi_image_free(texData);
 
-    frameBuffer = new FrameBuffer(640, 480);
-    diffuseBuffer = new Texture2D();
-    frameBuffer->SetTexture(0, diffuseBuffer);
+    deferredFrameBuffer = new DeferredFrameBuffer();
+
+    windowRenderTarget = new RenderTarget(1280, 720);
 
     std::cout << "RenderSystem start!" << std::endl;
 
@@ -194,6 +194,9 @@ bool RenderSystem::Init(HWND window)
 
 void RenderSystem::Cleanup()
 {
+    delete windowRenderTarget;
+    delete deferredFrameBuffer;
+
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(context);
     std::cout << "RenderSystem cleanup!" << std::endl;
@@ -206,42 +209,32 @@ void RenderSystem::ResizeCanvas(int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void RenderSystem::Update()
+void RenderSystem::UpdateRenderTarget(RenderTarget* rt)
 {
-    projection = gfxm::perspective(projection, 1.5f, 16.0f/9.0f, 0.01f, 100.0f);
-    model.rotate(0.0001f, gfxm::vec3(0.0f, 1.0f, 0.0f));
-    view.position(0.0f, 0.7f, 2.0f);
-
-    frameBuffer->Bind();
+    deferredFrameBuffer->Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    for (Mesh* m : meshes)
-    {
-        sp_model->Bind();
-        //glUniformMatrix4fv(0, 1, GL_FALSE, &projection[0][0]);
-        //glUniformMatrix4fv(1, 1, GL_FALSE, &gfxm::inverse(view.matrix())[0][0]);
-        //glUniformMatrix4fv(2, 1, GL_FALSE, &model.matrix()[0][0]);
-        tex->Bind(0);
-        m->Bind();
-        m->Render();
-    }
-    
-
     sp_model->Bind();
-    glUniformMatrix4fv(sp_model->UniformLocation("projection"), 1, GL_FALSE, &projection[0][0]);
-    glUniformMatrix4fv(sp_model->UniformLocation("view"), 1, GL_FALSE, &gfxm::inverse(view.matrix())[0][0]);
-    glUniformMatrix4fv(sp_model->UniformLocation("model"), 1, GL_FALSE, &model.matrix()[0][0]);
-    tex->Bind(0);
-    cube->Bind();
-    cube->Render();
+    glUniformMatrix4fv(sp_model->UniformLocation("projection"), 1, GL_FALSE, rt->GetViewpoint()->projection);
+    glUniformMatrix4fv(sp_model->UniformLocation("view"), 1, GL_FALSE, rt->GetViewpoint()->view);
+    RenderScene* scene = (RenderScene*)rt->GetViewpoint()->renderScene;
+    for (MeshObject* mo : scene->meshObjects)
+    {
+        glUniformMatrix4fv(sp_model->UniformLocation("model"), 1, GL_FALSE, mo->transform);
+        tex->Bind(0);
+        cube->Bind();
+        cube->Render();
+    }
 
-    RenderToScreen(diffuseBuffer);
+    deferredFrameBuffer->Render(rt->GetFrameBuffer());
+}
 
-    // For each camera
-    // Get camera's renderTarget
-    // Get camera's renderSpace
-    // For each renderable in renderSpace
-    // 
+void RenderSystem::Update()
+{    
+    for (RenderTarget* rt : renderTargets)
+        UpdateRenderTarget(rt);
+    UpdateRenderTarget(windowRenderTarget);
+
+    RenderToScreen(windowRenderTarget->GetColorBuffer());
 }
 
 int RenderSystem::APIVersion()
@@ -259,6 +252,18 @@ IMesh* RenderSystem::CreateMesh()
 void RenderSystem::DestroyMesh(IMesh* mesh)
 {
     meshes.erase((Mesh*)mesh);
+}
+
+IRenderScene* RenderSystem::CreateScene()
+{
+    RenderScene* s = new RenderScene();
+    scenes.insert(s);
+    return s;
+}
+
+void RenderSystem::DestroyScene(IRenderScene* scene)
+{
+    scenes.erase((RenderScene*)scene);
 }
 
 void RenderSystem::RenderToScreen(Texture2D* texture)

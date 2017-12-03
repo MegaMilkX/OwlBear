@@ -94,15 +94,14 @@ public:
     virtual void Switch(GameState* state);
     virtual float DeltaTime();
     
+    virtual IRenderSystem* LoadRenderSystem(const char* filename);
     virtual IRenderSystem* GetRenderSystem();
-    virtual IAudioSystem* GetAudioSystem();
 
     bool Update();
 private:
     Au::Window* window;
 
     SystemModule<IRenderSystem> renderSys;
-    SystemModule<IAudioSystem> audioSys;
 
     std::set<SceneObject*> scenes;
 

@@ -13,8 +13,39 @@ extern "C" {
 }
 
 #include "shader_program.h"
-#include "framebuffer.h"
+#include "deferred_framebuffer.h"
+#include "render_target.h"
 #include "mesh.h"
+
+class IMaterial
+{
+public:
+
+};
+
+struct RenderInstance
+{
+    gfxm::transform transform;
+    IMaterial* material;
+    IMesh* mesh;
+};
+
+class RenderScene : public IRenderScene
+{
+public:
+    virtual MeshObject* CreateMeshObject()
+    {
+        MeshObject* mo = new MeshObject();
+        meshObjects.insert(mo);
+        return mo;
+    }
+    virtual void DestroyMeshObject(MeshObject* mo)
+    {
+        meshObjects.erase(mo);
+    }
+
+    std::set<MeshObject*> meshObjects;
+};
 
 class RenderSystem : public IRenderSystem
 {
@@ -26,11 +57,17 @@ public:
     void ResizeCanvas(int width, int height);
 
     void Update();
+    void UpdateRenderTarget(RenderTarget* rt);
 
     int APIVersion();
 
     IMesh* CreateMesh();
     void DestroyMesh(IMesh* mesh);
+
+    IRenderScene* CreateScene();
+    void DestroyScene(IRenderScene* scene);
+
+    IRenderTarget* DefaultRenderTarget() { return windowRenderTarget; }
 
     // ==
     void RenderToScreen(Texture2D* texture);
@@ -42,6 +79,7 @@ private:
     int contextVersion = 0;
 
     std::set<Mesh*> meshes;
+    std::set<RenderScene*> scenes;
 
     // Temp
     //Au::GFX::Mesh* mesh;
@@ -51,8 +89,10 @@ private:
     ShaderProgram* shaderProgram;
     ShaderProgram* sp_model;
     Texture2D* tex;
-    Texture2D* diffuseBuffer;
-    FrameBuffer* frameBuffer;
+
+    DeferredFrameBuffer* deferredFrameBuffer;
+    std::set<RenderTarget*> renderTargets;
+    RenderTarget* windowRenderTarget;
 
     gfxm::mat4 projection;
     gfxm::transform view;
