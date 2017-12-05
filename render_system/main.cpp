@@ -7,7 +7,7 @@ extern "C" {
 #include "stb_image.h"
 }
 
-static RenderSystem renderSystem;
+RenderSystem* renderSystem = 0;
 
 #define DLLEXPORT __declspec(dllexport)
 
@@ -15,6 +15,6 @@ extern "C"
 {
     DLLEXPORT IRenderSystem* RenderSystemInit(ICore* core)
     {
-        return &renderSystem;
+        return new RenderSystem(core);
     }
 }

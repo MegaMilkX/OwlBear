@@ -4,7 +4,7 @@
 #include "game_state.h"
 
 #include "irender_system.h"
-#include "iaudio_system.h"
+#include "ispatial_system.h"
 
 class ICore
 {
@@ -14,10 +14,10 @@ public:
     
     virtual IRenderSystem* LoadRenderSystem(const char* filename) = 0;
     virtual IRenderSystem* GetRenderSystem() = 0;
+    virtual ISpatialSystem* GetSpatialSystem() = 0;
 };
 
 #define DLLEXPORT __declspec(dllexport)
-
 extern "C"
 {
     DLLEXPORT int GameInit(ICore* core);
@@ -25,7 +25,6 @@ extern "C"
     DLLEXPORT void GameCleanup();
 
 }
-
 #undef DLLEXPORT
 
 #endif

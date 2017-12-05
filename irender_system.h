@@ -3,6 +3,8 @@
 
 #include <Windows.h>
 
+#include "ispatial_system.h"
+
 class IMesh
 {
 public:
@@ -13,7 +15,7 @@ public:
 struct MeshObject
 {
     IMesh* mesh;
-    float transform[16];
+    ITransformNode* transform;
 };
 #pragma pack(pop)
 
@@ -27,7 +29,7 @@ public:
 #pragma pack(push, 1)
 struct Viewpoint
 {
-    float view[16];
+    ITransformNode* view;
     float projection[16];
     IRenderScene* renderScene;
 };

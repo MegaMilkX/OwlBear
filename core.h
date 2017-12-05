@@ -96,11 +96,13 @@ public:
     
     virtual IRenderSystem* LoadRenderSystem(const char* filename);
     virtual IRenderSystem* GetRenderSystem();
+    virtual ISpatialSystem* GetSpatialSystem();
 
     bool Update();
 private:
     Au::Window* window;
 
+    SystemModule<ISpatialSystem> spatialSys;
     SystemModule<IRenderSystem> renderSys;
 
     std::set<SceneObject*> scenes;

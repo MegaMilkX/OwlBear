@@ -8,46 +8,79 @@ class Transform : public Component
 public:
     Transform(SceneObject* so)
     {
-
+        ISpatialSystem* spatial = SceneObject::CoreInterface()->GetSpatialSystem();
+        tnode = spatial->CreateNode();
     }
-
-    void Translate(float x, float y, float z) { transform.translate(x, y, z); }
-    void Translate(const gfxm::vec3& vec) { transform.translate(vec); }
-    void Rotate(float angle, float axisX, float axisY, float axisZ) { transform.rotate(angle, axisX, axisY, axisZ); }
-    void Rotate(float angle, const gfxm::vec3& axis) { transform.rotate(angle, axis); }
-    void Rotate(const gfxm::quat& q) { transform.rotate(q); }
-
-    void LookAt(const gfxm::vec3& target, const gfxm::vec3& forward, const gfxm::vec3& up = gfxm::vec3(0.0f, 1.0f, 0.0f), float f = 1.0f)
+    ~Transform()
     {
-        transform.look_at(target, forward, up, f);
+        SceneObject::CoreInterface()->GetSpatialSystem()->DestroyNode(tnode);
     }
 
-    void Position(float x, float y, float z) { transform.position(x, y, z); }
-    void Position(const gfxm::vec3& position) { transform.position(position); }
-    void Rotation(float x, float y, float z) { transform.rotation(x, y, z); }
-    void Rotation(const gfxm::quat& rotation) { transform.rotation(rotation); }
-    void Rotation(float x, float y, float z, float w) { transform.rotation(x, y, z, w); }
-    void Scale(float scale) { transform.scale(scale); }
-    void Scale(float x, float y, float z) { transform.scale(x, y, z); }
-    void Scale(const gfxm::vec3& scale) { transform.scale(scale); }
+    void Translate(float x, float y, float z) {
+        tnode->Translate(x, y, z);
+    }
+    void Translate(const gfxm::vec3& vec) {
+        tnode->Translate(vec.x, vec.y, vec.z);
+    }
+    void Rotate(float angle, float axisX, float axisY, float axisZ) { 
+        tnode->AngleAxis(angle, axisX, axisY, axisZ);
+    }
+    void Rotate(float angle, const gfxm::vec3& axis) { 
+        tnode->AngleAxis(angle, axis.x, axis.y, axis.z);
+    }
+    void Rotate(const gfxm::quat& q) { 
+        tnode->Rotate(q.x, q.y, q.z, q.w); 
+    }
+
+    void Position(float x, float y, float z) { 
+        tnode->Position(x, y, z);
+    }
+    void Position(const gfxm::vec3& position) { 
+        tnode->Position(position.x, position.y, position.z);
+    }
+    void Rotation(float x, float y, float z) { 
+        tnode->RotationEuler(x, y, z); 
+    }
+    void Rotation(const gfxm::quat& rotation) { 
+        tnode->Rotation(rotation.x, rotation.y, rotation.z, rotation.w);
+    }
+    void Rotation(float x, float y, float z, float w) { 
+        tnode->Rotation(x, y, z, w);
+    }
+    void Scale(float scale) { 
+        tnode->Scale(scale); 
+    }
+    void Scale(float x, float y, float z) { 
+        tnode->Scale(x, y, z);
+    }
+    void Scale(const gfxm::vec3& scale) { 
+        tnode->Scale(scale.x, scale.y, scale.z);
+    }
 
     //gfxm::vec3 WorldPosition();
-    gfxm::vec3 Position() { return transform.position(); }
-    gfxm::quat Rotation() { return transform.rotation(); }
-    gfxm::vec3 Scale() { return transform.scale(); }
-
+    //gfxm::vec3 Position() { return transform.position(); }
+    //gfxm::quat Rotation() { return transform.rotation(); }
+    //gfxm::vec3 Scale() { return transform.scale(); }
+    /*
     gfxm::vec3 Right() { return transform.right(); }
     gfxm::vec3 Up() { return transform.up(); }
     gfxm::vec3 Back() { return transform.back(); }
     gfxm::vec3 Left() { return transform.left(); }
     gfxm::vec3 Down() { return transform.down(); }
     gfxm::vec3 Forward() { return transform.forward(); }
+    */
+    void SetTransform(gfxm::mat4& t) { 
+        tnode->SetTransform((float*)&t);
+    }
+    gfxm::mat4 GetTransform() {
+        gfxm::mat4 m;
+        tnode->GetTransform((float*)&m);
+        return m;
+    }
 
-    void SetTransform(gfxm::mat4& t) { transform.set_transform(t); }
-    //Au::Math::Mat4f GetLocalTransform();
-    gfxm::mat4 GetTransform() { return transform.matrix(); }
+    ITransformNode* GetTransformNode() { return tnode; }
 private:
-    gfxm::transform transform;
+    ITransformNode* tnode;
 };
 
 IMesh* g_mesh = 0;
@@ -80,24 +113,19 @@ class Mesh : public Component
 public:
     Mesh(SceneObject* so)
     {
+        t = so->GetComponent<Transform>();
         GfxRoot* mr = so->GetRoot()->GetComponent<GfxRoot>();
         mo = mr->GetRenderScene()->CreateMeshObject();
         mo->mesh = g_mesh;
-        t = so->GetComponent<Transform>();
+        mo->transform = t->GetTransformNode();
+        
         mr->AddMesh(this);
-        UpdateTransform();
     }
 
     ~Mesh()
     {
         Object()->GetRoot()->GetComponent<GfxRoot>()->GetRenderScene()->DestroyMeshObject(mo);
         Object()->GetRoot()->GetComponent<GfxRoot>()->RemoveMesh(this);
-    }
-
-    void UpdateTransform()
-    {
-        gfxm::mat4& mat = t->GetTransform();
-        std::copy((float*)&mat, (float*)&mat + 16, mo->transform);
     }
 private:
     MeshObject* mo;
@@ -111,27 +139,24 @@ public:
         :vp(0)
     {
         gfxScene = so->GetRoot()->GetComponent<GfxRoot>();
-        projection = gfxm::perspective(projection, 1.5f, 16.0f / 9.0f, 0.01f, 100.0f);
+        gfxScene->SetCurrentCamera(this);
         t = so->GetComponent<Transform>();
 
-        gfxScene->SetCurrentCamera(this);
-
         SetRenderTarget(SceneObject::CoreInterface()->GetRenderSystem()->DefaultRenderTarget());
+        Perspective(1.5f, 16.0f / 9.0f, 0.01f, 100.0f);
+    }
+
+    void Perspective(float fov, float aspect, float znear, float zfar)
+    {
+        gfxm::perspective(projection, fov, aspect, znear, zfar);
+        std::copy((float*)&projection, (float*)&projection + 16, vp->projection);
     }
 
     void SetRenderTarget(IRenderTarget* rt)
     {
         vp = rt->GetViewpoint();
         vp->renderScene = gfxScene->GetRenderScene();
-    }
-
-    void Update()
-    {
-        if (!vp)
-            return;
-        gfxm::mat4& mat = gfxm::inverse(t->GetTransform());
-        std::copy((float*)&mat, (float*)&mat + 16, vp->view);
-        std::copy((float*)&projection, (float*)&projection + 16, vp->projection);
+        vp->view = t->GetTransformNode();
     }
 private:
     Transform* t;
@@ -156,11 +181,7 @@ void GfxRoot::SetCurrentCamera(Camera* c)
 
 void GfxRoot::Update()
 {
-    for (auto m : meshes)
-    {
-        m->UpdateTransform();
-    }
-    camera->Update();
+    
 }
 
 
@@ -181,6 +202,7 @@ public:
 
         m2 = scene.CreateObject()->GetComponent<Mesh>();
         m2->GetComponent<Transform>()->Translate(0.0f, 0.0f, -3.0f);
+        
 
         gfxRoot = scene.GetComponent<GfxRoot>();
 
@@ -195,9 +217,7 @@ public:
 
     bool Update()
     {
-        mesh->GetComponent<Transform>()->Rotate(0.0001f, gfxm::vec3(0.0f, 1.0f, 0.0f));
-
-        gfxRoot->Update();        
+        mesh->GetComponent<Transform>()->Rotate(0.0001f, gfxm::vec3(0.0f, 1.0f, 0.0f));     
         return true;
     }
 private:

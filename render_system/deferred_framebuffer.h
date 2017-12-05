@@ -8,9 +8,10 @@
 class DeferredFrameBuffer
 {
 public:
-    DeferredFrameBuffer()
+    DeferredFrameBuffer(unsigned width, unsigned height)
+        : width(width), height(height)
     {
-        fb = new FrameBuffer(1280, 720);
+        fb = new FrameBuffer(width, height);
         diffuse = new Texture2D();
         normal = new Texture2D();
         fb->SetTexture(0, diffuse);
@@ -51,6 +52,11 @@ public:
         delete diffuse;
     }
 
+    void Resize(unsigned width, unsigned height)
+    {
+        fb->Resize(width, height);
+    }
+
     void Bind()
     {
         fb->Bind();
@@ -59,7 +65,7 @@ public:
     void Render(FrameBuffer* fb)
     {
         fb->Bind();
-        glViewport(0, 0, 1280, 720);
+        glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shaderProgram.Bind();
@@ -83,6 +89,8 @@ private:
     ShaderProgram shaderProgram;
 
     Mesh* screenQuad;
+
+    unsigned width, height;
 };
 
 #endif

@@ -33,9 +33,19 @@ struct RenderInstance
 class RenderScene : public IRenderScene
 {
 public:
+    RenderScene(ICore* core)
+    {
+        defaultTransform = 
+            core->GetSpatialSystem()->CreateNode();
+    }
+    ~RenderScene()
+    {
+        core->GetSpatialSystem()->DestroyNode(defaultTransform);
+    }
     virtual MeshObject* CreateMeshObject()
     {
         MeshObject* mo = new MeshObject();
+        mo->transform = defaultTransform;
         meshObjects.insert(mo);
         return mo;
     }
@@ -45,11 +55,19 @@ public:
     }
 
     std::set<MeshObject*> meshObjects;
+private:
+    ICore* core;
+    ITransformNode* defaultTransform;
 };
 
 class RenderSystem : public IRenderSystem
 {
 public:
+    RenderSystem(ICore* core)
+        :core(core)
+    {
+
+    }
     bool Init(HWND window);
 
     void Cleanup();
@@ -97,6 +115,8 @@ private:
     gfxm::mat4 projection;
     gfxm::transform view;
     gfxm::transform model;
+
+    ICore* core;
 };
 
 #endif

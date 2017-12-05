@@ -21,17 +21,40 @@ bool Core::Init()
     window = Au::Window::Create("AuroraX", 1280, 720);
     window->Show();
 
+    if (spatialSys.GetInterface() == 0)
+    {
+        ISpatialSystem* spatialInterface = spatialSys.Init(this, "SpatialInit");
+        if (!spatialInterface)
+        {
+            // TODO: LOGS
+            std::cout << "No spatial system module found!" << std::endl;
+            return false;
+        }
+    }
+
     if (renderSys.GetInterface() == 0)
     {
         IRenderSystem* renderInterface = renderSys.Init(this, "RenderSystemInit");
         if (!renderInterface)
         {
+            // TODO: LOGS
             std::cout << "No render module found" << std::endl;
             return false;
         }
     }
 
-    renderSys.GetInterface()->Init(*window);
+    if (!spatialSys.GetInterface()->Init())
+    {
+        // TODO: LOGS
+        std::cout << "spatial system failed to initialize" << std::endl;
+        return false;
+    }
+    if (!renderSys.GetInterface()->Init(*window))
+    {
+        // TODO: LOGS
+        std::cout << "render system failed to initialize" << std::endl;
+        return false;
+    }
 
     return true;
 }
@@ -41,6 +64,9 @@ void Core::Cleanup()
     if (renderSys.GetInterface())
         renderSys.GetInterface()->Cleanup();
     renderSys.Cleanup();
+    if (spatialSys.GetInterface())
+        spatialSys.GetInterface()->Cleanup();
+    spatialSys.Cleanup();
 
     Au::Window::Destroy(window);
 }
@@ -69,6 +95,11 @@ IRenderSystem* Core::LoadRenderSystem(const char* filename)
 IRenderSystem* Core::GetRenderSystem()
 {
     return renderSys.GetInterface();
+}
+
+ISpatialSystem* Core::GetSpatialSystem()
+{
+    return spatialSys.GetInterface();
 }
 
 bool Core::Update()

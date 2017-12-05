@@ -183,7 +183,7 @@ bool RenderSystem::Init(HWND window)
     tex->Upload(texData, width, height, bpp);
     stbi_image_free(texData);
 
-    deferredFrameBuffer = new DeferredFrameBuffer();
+    deferredFrameBuffer = new DeferredFrameBuffer(1280, 720);
 
     windowRenderTarget = new RenderTarget(1280, 720);
 
@@ -215,11 +215,15 @@ void RenderSystem::UpdateRenderTarget(RenderTarget* rt)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     sp_model->Bind();
     glUniformMatrix4fv(sp_model->UniformLocation("projection"), 1, GL_FALSE, rt->GetViewpoint()->projection);
-    glUniformMatrix4fv(sp_model->UniformLocation("view"), 1, GL_FALSE, rt->GetViewpoint()->view);
+    float view[16];
+    rt->GetViewpoint()->view->GetTransform(view);
+    glUniformMatrix4fv(sp_model->UniformLocation("view"), 1, GL_FALSE, (float*)&gfxm::inverse(*(gfxm::mat4*)view));
     RenderScene* scene = (RenderScene*)rt->GetViewpoint()->renderScene;
     for (MeshObject* mo : scene->meshObjects)
     {
-        glUniformMatrix4fv(sp_model->UniformLocation("model"), 1, GL_FALSE, mo->transform);
+        float transformModel[16];
+        mo->transform->GetTransform(transformModel);
+        glUniformMatrix4fv(sp_model->UniformLocation("model"), 1, GL_FALSE, transformModel);
         tex->Bind(0);
         cube->Bind();
         cube->Render();
@@ -256,7 +260,7 @@ void RenderSystem::DestroyMesh(IMesh* mesh)
 
 IRenderScene* RenderSystem::CreateScene()
 {
-    RenderScene* s = new RenderScene();
+    RenderScene* s = new RenderScene(core);
     scenes.insert(s);
     return s;
 }
